@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+   "target": "ES6", 
+   "module": "NodeNext",
+    "outDir": "dist",
+    "rootDir": ".",
+    "sourceMap": true,
+    "strict": false,
+    "skipLibCheck": true,
+    "moduleResolution": "nodenext" // or "nodenext"
+  }
+}
