@@ -1,9 +1,15 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
-import jwksClient = require("jwks-rsa");
-import jwt = require("jsonwebtoken");
+
 
 import { uniqueNamesGenerator, colors, adjectives } from 'unique-names-generator';
 import { CosmosClient } from "@azure/cosmos";
+
+import * as signalR from '@microsoft/signalr';
+import { verifyToken } from "../utils/verifyTokens";
+import { tournamentContainer } from "../utils/configs";
+
+const connectionString = process.env.AZURE_SIGNALR_CONNECTION_STRING;
+
 
 function getRandomNumber(min: number, max: number): number {
     return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -17,48 +23,15 @@ function getRandomNumber(min: number, max: number): number {
     }
     return Array.from(randomNumbers);
 }
-const tenantId = process.env.TENANT_ID;
-const client = jwksClient({
-  jwksUri: `https://login.microsoftonline.com/${tenantId}/discovery/keys` 
-});
 
-const endpoint = process.env.COSMOS_DB_ENDPOINT;
-const key = process.env.COSMOS_DB_KEY;
-const cosmosClent = new CosmosClient({ endpoint, key });
 
-const database = cosmosClent.database("image-weaver-db");
-const tournamentCointainer = database.container("tournament");
 
-function getKey(header, callback) {
-  console.log("Header:", header);
 
-  client.getSigningKey(header.kid, (err, key) => {
-    if (err) {
-      console.log("Error getting signing key:", err); 
-      return callback(err);
-    }
-    const signingKey = key.getPublicKey();
-    console.log("Signing key:", signingKey);
-    callback(null, signingKey);
-  });
-}
 
-// Function to verify token
-function verifyToken(token) {
-  return new Promise((resolve, reject) => {
-    jwt.verify(token, getKey, { algorithms: ['RS256'] }, (err, decoded) => {
-      if (err) {
-        reject(`Token verification failed: ${err.message}`);
-      } else {
-        resolve(decoded); // token is valid
-      }
-    });
-  });
-}
-export async function createTournament(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
+export async function createTournament(request: HttpRequest, context: InvocationContext ): Promise<HttpResponseInit> {
     return new Promise(async (resolve) => {
     context.log(`Http function processed request for url "${request.url}"`);
-
+   
 
     try {
         const token = request.headers.get("authorization")?.split(" ")[1];
@@ -79,10 +52,12 @@ export async function createTournament(request: HttpRequest, context: Invocation
             body: "No token provided",
           });
         }
-        const decoded = await verifyToken(token);
-        const userId = (decoded as { oid: string }).oid;
-        const username = (decoded as { username: string }).username;
+      const decoded = await verifyToken(token);
+      const userId = (decoded as { oid: string }).oid;
+      const username = (decoded as { preferred_username: string }).preferred_username;
+      const name = (decoded as { name: string }).name;
 
+      console.log("Decoded:", decoded);
         const randomName = uniqueNamesGenerator({
             dictionaries: [adjectives, colors],
             separator: "-",
@@ -98,19 +73,24 @@ export async function createTournament(request: HttpRequest, context: Invocation
                     userId,
                     level: 0,
                     username,
-                    coinsPerLevel: []
+                    coinsPerLevel: [],
+                    name
                 }
             ],
             numberOfPlayers: Number(numberOfPlayers),
             status: "running",
             startDate: Number(new Date()),
             tournamentQuestIndexes: [1, 2, 3]
-        };
-    const { resource: createdTournament } = await tournamentCointainer.items.create(tournament);
-          resolve({
-            status: 200,
-            body: JSON.stringify({ createdTournament }),
-          });
+      };
+      
+        const { resource: createdTournament } = await tournamentContainer.items.create(tournament);
+      
+
+        resolve({
+          status: 200,
+        //  body: JSON.stringify({ createdTournament }),
+          body: JSON.stringify({ tournament:createdTournament, userId, name }),
+        });
     } catch (error) {
         console.log("Error:", error);
           resolve({
