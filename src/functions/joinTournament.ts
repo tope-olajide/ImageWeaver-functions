@@ -1,9 +1,8 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 
-// import { CosmosClient } from "@azure/cosmos";
 import { verifyToken } from "../utils/verifyTokens";
 import { tournamentContainer } from "../utils/configs";
-import { connectToSignalR } from "../utils/services";
+import { connectToSignalR, userJoinedTournament } from "../utils/services";
 
 
 
@@ -107,6 +106,12 @@ tournament.players.push({
         tournament
     ); 
     console.log("Connection:", "PlayerJoined"+"-"+ tournament.name); */
+const connection =await connectToSignalR()
+    await userJoinedTournament(tournament)
+    setTimeout(() => {
+        connection.stop();
+    }, 2000);
+
 return {
     status: 200,
     body: JSON.stringify({
