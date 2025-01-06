@@ -31,7 +31,6 @@ function getRandomNumber(min: number, max: number): number {
 export async function createTournament(request: HttpRequest, context: InvocationContext ): Promise<HttpResponseInit> {
     return new Promise(async (resolve) => {
     context.log(`Http function processed request for url "${request.url}"`);
-   
 
     try {
         const token = request.headers.get("authorization")?.split(" ")[1];
@@ -80,12 +79,10 @@ export async function createTournament(request: HttpRequest, context: Invocation
             numberOfPlayers: Number(numberOfPlayers),
             status: "running",
             startDate: Number(new Date()),
-            tournamentQuestIndexes: [1, 2, 3]
+            tournamentQuestIndexes: [1, 2, 3, 4, 5]
       };
       
         const { resource: createdTournament } = await tournamentContainer.items.create(tournament);
-      
-
         resolve({
           status: 200,
         //  body: JSON.stringify({ createdTournament }),
