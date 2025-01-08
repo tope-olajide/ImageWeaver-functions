@@ -16,7 +16,6 @@ import {
     "direction": "in"
 });
 
-  
   export async function negotiate(
     request: HttpRequest,
       context: InvocationContext,
