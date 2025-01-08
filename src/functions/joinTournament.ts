@@ -1,8 +1,8 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 
 import { verifyToken } from "../utils/verifyTokens";
-import { tournamentContainer } from "../utils/configs";
 import { connectToSignalR, userJoinedTournament } from "../utils/services";
+import { CosmosClient } from "@azure/cosmos";
 
 
 
@@ -34,7 +34,12 @@ export async function joinTournament(request: HttpRequest, context: InvocationCo
 
     const tournamentName = requestBody.tournamentName;
     console.log("Tournament Name:", tournamentName);
+    const endpoint = process.env.COSMOS_DB_ENDPOINT;
+    const key = process.env.COSMOS_DB_KEY;
+    const cosmosClient = new CosmosClient({ endpoint, key });
     
+    const database = cosmosClient.database("image-weaver-db");
+    const tournamentContainer = database.container("tournament");
 try{
     const { resources: tournaments } = await tournamentContainer.items
     
@@ -50,17 +55,19 @@ if (tournaments.length === 0) {
         status: 404,
         body: "Tournament not found",
     };
-}
+    }
+
 
 const tournament = tournaments[0];
-
+    if (tournament.status === "ended") {
+        throw new Error("The tournament has ended. You can no longer join.");
+    }
+    
    // console.log("Tournament [0]:", tournament);
  
-/* if (tournament.numberOfPlayers >= tournament.players.length + 1) {
-    return {
-        status: 400,
-        body: "The tournament is full. You can no longer join.",
-    };
+    if (tournament.numberOfPlayers >= tournament.players.length + 1) {
+    throw new Error("The tournament is full. You can no longer join.");
+   
 }
 
 const userAlreadyJoined = tournament.players.some(
@@ -71,6 +78,8 @@ if (userAlreadyJoined) {
     const joinedPlayer = tournament.players.find(
         (player) => player.userId.toString() === userId.toString()
     );
+    await connectToSignalR()
+    await userJoinedTournament(tournament)
     return {
         status: 200,
         body: JSON.stringify({
@@ -79,7 +88,7 @@ if (userAlreadyJoined) {
             joinedPlayer
         })
     };
-} */
+} 
 
 tournament.players.push({
     userId,
@@ -88,29 +97,15 @@ tournament.players.push({
     coinsPerLevel: [],
     name,
 });
-   //console.log("Tournament-1:", tournament);
+
     await tournamentContainer.item(tournament.id, tournament.creatorId).replace(tournament);
 
     console.log("Updated Tournament:");
 
- /*    const connection = await connectToSignalR(); 
-    if (!connection) { 
-        return {
-            status: 500,
-            body: "Error connecting to SignalR"
-        };
-    } */
-/*   console.log("INVOKING:", "PlayerJoined"+"-"+ tournament.name);
-    await connection.invoke(
-        "PlayerJoined"+"-"+ tournament.name,
-        tournament
-    ); 
-    console.log("Connection:", "PlayerJoined"+"-"+ tournament.name); */
-const connection =await connectToSignalR()
+
+    await connectToSignalR()
     await userJoinedTournament(tournament)
-    setTimeout(() => {
-        connection.stop();
-    }, 2000);
+
 
 return {
     status: 200,

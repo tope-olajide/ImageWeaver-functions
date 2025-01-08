@@ -1,15 +1,9 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 
-
 import { uniqueNamesGenerator, colors, adjectives } from 'unique-names-generator';
 import { CosmosClient } from "@azure/cosmos";
 
-import * as signalR from '@microsoft/signalr';
 import { verifyToken } from "../utils/verifyTokens";
-import { tournamentContainer } from "../utils/configs";
-
-const connectionString = process.env.AZURE_SIGNALR_CONNECTION_STRING;
-
 
 function getRandomNumber(min: number, max: number): number {
     return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -25,12 +19,17 @@ function getRandomNumber(min: number, max: number): number {
 }
 
 
-
-
-
 export async function createTournament(request: HttpRequest, context: InvocationContext ): Promise<HttpResponseInit> {
     return new Promise(async (resolve) => {
     context.log(`Http function processed request for url "${request.url}"`);
+const endpoint = process.env.COSMOS_DB_ENDPOINT;
+const key = process.env.COSMOS_DB_KEY;
+const cosmosClient = new CosmosClient({ endpoint, key });
+
+const database = cosmosClient.database("image-weaver-db");
+const tournamentContainer = database.container("tournament");
+const tenantId = process.env.TENANT_ID;
+
 
     try {
         const token = request.headers.get("authorization")?.split(" ")[1];
@@ -61,9 +60,10 @@ export async function createTournament(request: HttpRequest, context: Invocation
             dictionaries: [adjectives, colors],
             separator: "-",
         });
-        const randomNum = getRandomNumber(1, 9999);
+        const randomNum = getRandomNumber(1, 999);
         const tournamentName = randomName + "-" + randomNum;
-  
+      const tournamentQuestIndexes = generateRandomNumbers(80);
+      console.log("Tournament Quest Indexes:", tournamentQuestIndexes);
         const tournament = {
             name: tournamentName,
             creatorId: userId,
@@ -79,7 +79,7 @@ export async function createTournament(request: HttpRequest, context: Invocation
             numberOfPlayers: Number(numberOfPlayers),
             status: "running",
             startDate: Number(new Date()),
-            tournamentQuestIndexes: [1, 2, 3, 4, 5]
+            tournamentQuestIndexes
       };
       
         const { resource: createdTournament } = await tournamentContainer.items.create(tournament);

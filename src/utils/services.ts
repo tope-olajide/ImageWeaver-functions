@@ -1,8 +1,8 @@
 import * as signalR from "@microsoft/signalr";
 
 let connection: signalR.HubConnection ;
-export const negotiateUrl = "http://localhost:7071/api/negotiate"
-export const broadcastUrl = "http://localhost:7071/api/broadcast"
+export const negotiateUrl = "https://image-weaver.azurewebsites.net/api/negotiate"
+export const broadcastUrl = "https://image-weaver.azurewebsites.net/api/broadcast"
 // Function to create and connect the SignalR connection
 
 export async function connectToSignalR() {
