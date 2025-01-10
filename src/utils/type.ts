@@ -17,4 +17,17 @@ export interface Tournament  {
     startDate: number;
     tournamentQuestIndexes: number[];
     winnerId?: string;
+};
+  
+export interface GameData {
+  userId: string;
+  level: number;
+  coins: number;
+  currentQuestArrayNumber: number;
+  currentQuest: {
+    word: string;
+    imageURL: string;
+    hint: string;
   };
+  foundQuestsIndex: number[];
+};

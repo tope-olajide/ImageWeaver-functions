@@ -48,21 +48,7 @@ export async function invokeSignalREvent(event, ...args) {
     }
 }
 
-/* export async function invokeSignalREvent(event, ...args) {
-    if (!connection || connection.state !== signalR.HubConnectionState.Connected) {
-        console.error(`Cannot invoke event ${event}: No active SignalR connection`);
-        return;
-    }
 
-    try {
-        console.log(`Invoking SignalR event '${event}' with args:`, args);
-        await connection.invoke(event, ...args);
-        console.log(`SignalR event '${event}' invoked successfully`, args);
-    } catch (err) {
-        console.error(`Error invoking SignalR event '${event}':`, err);
-    }
-}
- */
 export async function userJoinedTournament(tournament) {
     if (!connection || connection.state !== signalR.HubConnectionState.Connected) {
         console.error(`Cannot invoke event ${tournament.name}: No active SignalR connection`);
