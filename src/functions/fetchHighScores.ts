@@ -4,7 +4,7 @@ import { verifyToken } from "../utils/verifyTokens";
 import { CosmosClient } from "@azure/cosmos";
 
 
-export async function fetchGameData(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
+export async function fetchHighScores(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
     context.log(`Http function processed request for url "${request.url}"`);
 
     const token = request.headers.get("authorization")?.split(" ")[1];
@@ -24,26 +24,22 @@ export async function fetchGameData(request: HttpRequest, context: InvocationCon
 
       const decoded = await verifyToken(token);
       const userId = (decoded as { oid: string }).oid;
-      const username = (decoded as { preferred_username: string }).preferred_username;
-    try {
-        const querySpec = {
-            query: "SELECT * FROM gameData g WHERE g.userId = @userId",
-            parameters: [
-            {
-                name: "@userId",
-                value: userId
-            }
-            ]
-        };
+    const username = (decoded as { preferred_username: string }).preferred_username;
+    
+ try {
+    const querySpec = {
+        query: "SELECT TOP 10 * FROM gameData g ORDER BY g.level DESC"
+    };
 
-        const { resources: gameData } = await gameDataContainer.items.query(querySpec).fetchAll();
+     const { resources: gameData } = await gameDataContainer.items.query(querySpec).fetchAll();
+     
         console.log("Game Data:", gameData);    
         if (gameData.length === 0) {
             return {
             status: 404,
             body: "Game data not found"
             };
-        }
+    }
         return {
             status: 200,
             body: JSON.stringify(gameData)
@@ -60,8 +56,8 @@ export async function fetchGameData(request: HttpRequest, context: InvocationCon
 
 };
 
-app.http('fetchGameData', {
+app.http('fetchHighScores', {
     methods: ['GET', 'POST'],
     authLevel: 'anonymous',
-    handler: fetchGameData
+    handler: fetchHighScores
 });
